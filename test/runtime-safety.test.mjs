@@ -75,7 +75,7 @@ test("legacy PAPERCLIP_HOME fallback is unchanged without override", () => {
     env: {},
     homePath: "/Users/example",
     userDataPath: "/Users/example/Library/Application Support/Paperclip",
-    pathExists: (target) => target.endsWith("/.paperclip/instances/default/db"),
+    pathExists: (target) => target === path.join("/Users/example", ".paperclip", "instances", "default", "db"),
   });
   const resolvedMissing = resolvePaperclipHomePath({
     env: {},
@@ -84,7 +84,7 @@ test("legacy PAPERCLIP_HOME fallback is unchanged without override", () => {
     pathExists: () => false,
   });
 
-  assert.equal(resolvedExisting, "/Users/example/.paperclip");
+  assert.equal(resolvedExisting, path.join("/Users/example", ".paperclip"));
   assert.equal(resolvedMissing, "/Users/example/Library/Application Support/Paperclip");
 });
 

@@ -12,6 +12,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { runCommandSync } from "./run-command.mjs";
 import { existsSync, readFileSync, mkdirSync, rmSync, cpSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -58,7 +59,7 @@ if (!serverVersion) {
 // ── Try to install @paperclipai/ui from npm first (future-proofing) ─────────
 
 try {
-  const uiVersion = execFileSync("npm", ["view", `@paperclipai/ui@${serverVersion}`, "version"], {
+  const uiVersion = runCommandSync("npm", ["view", `@paperclipai/ui@${serverVersion}`, "version"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 15000,
@@ -69,7 +70,7 @@ try {
     const uiStagingDir = path.join(projectRoot, "build", "ui-staging");
     if (existsSync(uiStagingDir)) rmSync(uiStagingDir, { recursive: true, force: true });
     mkdirSync(uiStagingDir, { recursive: true });
-    execFileSync("npm", ["pack", `@paperclipai/ui@${uiVersion}`, "--pack-destination", uiStagingDir], {
+    runCommandSync("npm", ["pack", `@paperclipai/ui@${uiVersion}`, "--pack-destination", uiStagingDir], {
       stdio: "inherit",
     });
     // Extract and copy dist/
@@ -127,10 +128,10 @@ if (!cloneSuccess) {
 // ── Install dependencies and build UI ───────────────────────────────────────
 
 console.log("[build-ui] Installing upstream dependencies...");
-execFileSync("pnpm", ["install", "--frozen-lockfile"], { cwd: cloneDir, stdio: "inherit", timeout: 300000 });
+runCommandSync("pnpm", ["install", "--frozen-lockfile"], { cwd: cloneDir, stdio: "inherit", timeout: 300000 });
 
 console.log("[build-ui] Building UI...");
-execFileSync("pnpm", ["--filter", "@paperclipai/ui", "build"], { cwd: cloneDir, stdio: "inherit", timeout: 300000 });
+runCommandSync("pnpm", ["--filter", "@paperclipai/ui", "build"], { cwd: cloneDir, stdio: "inherit", timeout: 300000 });
 
 // ── Copy UI dist to server bundle ───────────────────────────────────────────
 

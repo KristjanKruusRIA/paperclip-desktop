@@ -7,6 +7,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { runCommandSync } from "./run-command.mjs";
 import {
   cpSync,
   existsSync,
@@ -60,6 +61,10 @@ const platform = process.platform;
 const nodePlatform = platform === "win32" ? "win32" : platform;
 const ebPlatform = platform === "darwin" ? "mac" : platform === "win32" ? "win" : "linux";
 const targetArches = platform === "darwin" ? ["x64", "arm64"] : ["x64"];
+
+function toPowerShellLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
 
 rmSync(stagingRootDir, { recursive: true, force: true });
 rmSync(bundleRootDir, { recursive: true, force: true });
@@ -210,13 +215,21 @@ for (const arch of targetArches) {
           "@paperclipai/teams-catalog": teamsCatalogVersion,
         },
         overrides: serverBundleOverrides,
+        allowScripts: {
+          [`@embedded-postgres/${platform === "win32" ? "windows" : platform}-${arch}`]: true,
+          "cpu-features": true,
+          esbuild: true,
+          sharp: true,
+          sqlite3: true,
+          ssh2: true,
+        },
       },
       null,
       2,
     ),
   );
 
-  execFileSync(
+  runCommandSync(
     "npm",
     ["install", "--production", `--os=${nodePlatform}`, `--cpu=${arch}`, `--arch=${arch}`],
     {
@@ -317,7 +330,11 @@ for (const arch of arches) {
   if (platform === "win32") {
     execFileSync(
       "powershell",
-      ["-NoProfile", "-Command", "Invoke-WebRequest -Uri $args[0] -OutFile $args[1]", url, archivePath],
+      [
+        "-NoProfile",
+        "-Command",
+        `Invoke-WebRequest -Uri ${toPowerShellLiteral(url)} -OutFile ${toPowerShellLiteral(archivePath)}`,
+      ],
       { stdio: "inherit" },
     );
   } else {
@@ -327,7 +344,11 @@ for (const arch of arches) {
   if (platform === "win32") {
     execFileSync(
       "powershell",
-      ["-NoProfile", "-Command", "Expand-Archive -Path $args[0] -DestinationPath $args[1] -Force", archivePath, destDir],
+      [
+        "-NoProfile",
+        "-Command",
+        `Expand-Archive -Path ${toPowerShellLiteral(archivePath)} -DestinationPath ${toPowerShellLiteral(destDir)} -Force`,
+      ],
       { stdio: "inherit" },
     );
     cpSync(path.join(destDir, archiveName, "node.exe"), destBin);
