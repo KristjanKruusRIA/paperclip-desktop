@@ -8,6 +8,7 @@ import {
   screen,
   session,
   shell,
+  Tray,
   type MenuItemConstructorOptions,
   type Session,
 } from "electron";
@@ -18,6 +19,7 @@ import net from "node:net";
 import path from "node:path";
 import treeKill from "tree-kill";
 import { windowsStartupMenuItem } from "./windows-startup";
+import { hideWindowOnClose, windowsTrayMenu } from "./windows-tray";
 import { checkForUpdatesFromMenu, initAutoUpdater } from "./updater";
 import { getLauncherHtml } from "./launcher-html";
 import { handleSwipeNavigation } from "./navigation-gestures";
@@ -75,6 +77,7 @@ let mainWindow: BrowserWindow | null = null;
 let launcherWindow: BrowserWindow | null = null;
 let launcherPresentation: LauncherPresentation = "standalone";
 let isQuitting = false;
+let windowsTray: Tray | null = null;
 let bootSequence = 0;
 let launcherView: LauncherView = "chooser";
 let appStartupReadyForFocus = false;
@@ -126,6 +129,9 @@ function focusExistingInstanceWindow(): void {
   }
 
   if (launcherWindow && !launcherWindow.isDestroyed()) {
+    if (launcherWindow.isMinimized()) {
+      launcherWindow.restore();
+    }
     launcherWindow.show();
     launcherWindow.focus();
     return;
@@ -625,11 +631,19 @@ function desiredLauncherPresentation(): LauncherPresentation {
   return mainWindow && !mainWindow.isDestroyed() ? "attached" : "standalone";
 }
 
+function keepWindowInTray(window: BrowserWindow): void {
+  if (process.platform !== "win32") return;
+  hideWindowOnClose(window, () => !isQuitting && !!windowsTray && !windowsTray.isDestroyed());
+  window.on("query-session-end", () => {
+    isQuitting = true;
+  });
+}
+
 function closeLauncherWindow(): void {
   launcherContentHeightSettleTimers.forEach((timer) => clearTimeout(timer));
   launcherContentHeightSettleTimers = [];
   if (launcherWindow && !launcherWindow.isDestroyed()) {
-    launcherWindow.close();
+    launcherWindow.destroy();
   }
   launcherWindow = null;
 }
@@ -763,6 +777,7 @@ async function createLauncherWindow(presentation: LauncherPresentation): Promise
     },
   });
 
+  if (!attached) keepWindowInTray(launcher);
   launcher.on("closed", () => {
     launcherWindow = null;
     launcherPresentation = "standalone";
@@ -931,6 +946,7 @@ function createMainWindow(input: {
   });
 
   applyWindowPolicy(win, input.allowedOrigin);
+  keepWindowInTray(win);
 
   win.once("ready-to-show", () => {
     win.show();
@@ -1679,6 +1695,13 @@ app.whenReady().then(async () => {
   registerLauncherIpc();
   rebuildAppMenu();
 
+  if (process.platform === "win32") {
+    windowsTray = new Tray(await app.getFileIcon(process.execPath, { size: "small" }));
+    windowsTray.setToolTip("Paperclip");
+    windowsTray.setContextMenu(Menu.buildFromTemplate(windowsTrayMenu(focusExistingInstanceWindow, () => app.quit())));
+    windowsTray.on("double-click", focusExistingInstanceWindow);
+  }
+
   const startupProfileId = connectionStore.getStartupProfileId();
   if (startupProfileId) {
     if (startupProfileId === LOCAL_PROFILE_ID) {
@@ -1732,6 +1755,7 @@ app.on("activate", () => {
 });
 
 app.on("window-all-closed", () => {
+  if (process.platform === "win32" && windowsTray && !isQuitting) return;
   if (process.platform !== "darwin") {
     app.quit();
   }
@@ -1742,15 +1766,20 @@ app.on("before-quit", async (event) => {
     return;
   }
 
+  isQuitting = true;
   stopLocalServerMonitor();
   if (!serverProcess) {
     return;
   }
 
-  isQuitting = true;
   event.preventDefault();
   await killServer();
   app.quit();
+});
+
+app.on("will-quit", () => {
+  windowsTray?.destroy();
+  windowsTray = null;
 });
 
 for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
