@@ -89,6 +89,16 @@ See [github.com/paperclipai/paperclip](https://github.com/paperclipai/paperclip)
 
 Requirements: Node.js 20+, pnpm 9.15+.
 
+For Windows development, run `node scripts/dev.mjs` after installing dependencies.
+Local provider sign-in commands use Windows PowerShell. Development and Windows
+packaging apply a compatibility patch to the bundled server's login command generation.
+
+Build the Windows installer with `pnpm dist:win`. The installer is written to
+`release/` and installs for the current user. In the installed app, enable
+**Paperclip → Start at Windows sign-in** to launch automatically when you log in.
+In the launcher's Local tab, select **Always start local on launch** if you also
+want the local server to start without choosing a connection each time.
+
 ```bash
 pnpm install           # Install deps
 pnpm dev               # Run Electron in dev mode against the bundled server

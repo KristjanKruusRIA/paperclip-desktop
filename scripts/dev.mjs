@@ -11,11 +11,17 @@
  */
 
 import { execSync, spawn } from "node:child_process";
+import electron from "electron";
+import { patchWindowsLoginCommands } from "./windows-login-commands.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
+
+if (process.platform === "win32") {
+  patchWindowsLoginCommands(path.join(projectRoot, "node_modules", "@paperclipai", "server"));
+}
 
 // 1. Compile TS
 console.log("[dev] Compiling TypeScript...");
@@ -23,8 +29,7 @@ execSync("npx tsc", { cwd: projectRoot, stdio: "inherit" });
 
 // 2. Launch Electron
 console.log("[dev] Starting Electron...");
-const electronBin = path.join(projectRoot, "node_modules", ".bin", "electron");
-const child = spawn(electronBin, [path.join(projectRoot, "dist", "main.js")], {
+const child = spawn(electron, [path.join(projectRoot, "dist", "main.js")], {
   cwd: projectRoot,
   stdio: "inherit",
   env: { ...process.env },

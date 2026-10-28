@@ -4,10 +4,12 @@ packages:
 allowBuilds:
   '@embedded-postgres/darwin-arm64': true
   '@embedded-postgres/darwin-x64': true
+  '@embedded-postgres/windows-x64': true
   cpu-features: true
   electron: true
   electron-winstaller: true
   esbuild: true
+  protobufjs: false
   sharp: true
   sqlite3: true
   ssh2: true
