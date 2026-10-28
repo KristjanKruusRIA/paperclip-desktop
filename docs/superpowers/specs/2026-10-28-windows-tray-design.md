@@ -9,7 +9,7 @@ not be blocked. Other platforms retain their existing behavior.
 
 The user selected the system tray because it provides an explicit
 Open/Quit menu; ordinary taskbar minimization alone does not provide that menu.
-Use the installed executable's icon and Electron's existing Tray API, without new
+Use a bundled copy of the application ICO and Electron's existing Tray API, without new
 dependencies or a settings screen.
 
 Validation: 74 regression tests pass. Packaged Windows checks verify that closing
@@ -17,3 +17,8 @@ the standalone launcher and main window hides rather than destroys them; reopeni
 restores the same window; the API remains healthy while hidden; internal launcher
 dismissal leaves no orphan windows; and explicit Quit exits both with and without
 a running local server.
+
+Desktop 3.2.19 fixes the generic Windows tray image by loading resources/tray.ico
+directly instead of asking Windows to extract an icon from the executable. The
+packaged ICO is byte-identical to build/icon.ico and loads as a nonempty native
+image; the rendered 32-pixel preview shows the actual Paperclip mark.

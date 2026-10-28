@@ -1696,7 +1696,9 @@ app.whenReady().then(async () => {
   rebuildAppMenu();
 
   if (process.platform === "win32") {
-    windowsTray = new Tray(await app.getFileIcon(process.execPath, { size: "small" }));
+    windowsTray = new Tray(app.isPackaged
+      ? path.join(process.resourcesPath, "tray.ico")
+      : path.join(__dirname, "..", "build", "icon.ico"));
     windowsTray.setToolTip("Paperclip");
     windowsTray.setContextMenu(Menu.buildFromTemplate(windowsTrayMenu(focusExistingInstanceWindow, () => app.quit())));
     windowsTray.on("double-click", focusExistingInstanceWindow);
