@@ -9,6 +9,7 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   esbuild: true
+  protobufjs: false
   sharp: true
   sqlite3: true
   ssh2: true

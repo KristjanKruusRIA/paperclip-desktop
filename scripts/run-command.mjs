@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export function runCommandSync(command, args, options = {}) {
@@ -17,7 +17,11 @@ export function runCommandSync(command, args, options = {}) {
       if (path.extname(location).toLowerCase() === ".exe") {
         return execFileSync(location, args, options);
       }
+      const shimEntrypoint = path.extname(location).toLowerCase() === ".cmd"
+        ? readFileSync(location, "utf8").match(/%~dp0([^"\r\n]*pnpm\.(?:cjs|mjs))/i)?.[1]
+        : undefined;
       for (const candidate of [
+        ...(shimEntrypoint ? [path.resolve(path.dirname(location), shimEntrypoint)] : []),
         path.join(path.dirname(location), "node_modules", command, "bin", entrypoint),
         path.resolve(path.dirname(location), "..", command, "bin", entrypoint),
         path.join(path.dirname(location), entrypoint),

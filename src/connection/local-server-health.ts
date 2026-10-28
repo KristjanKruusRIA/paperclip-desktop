@@ -9,6 +9,24 @@ export interface LocalServerHealthResult {
   detail?: string;
 }
 
+export async function waitForLocalServerHealth(
+  options: LocalServerHealthOptions & { pollIntervalMs?: number },
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? 120_000;
+  const deadline = Date.now() + timeoutMs;
+  let detail = "No health response received.";
+  while (Date.now() < deadline) {
+    const result = await probeLocalServerHealth({
+      ...options,
+      timeoutMs: Math.min(5_000, deadline - Date.now()),
+    });
+    if (result.ok) return;
+    detail = result.detail ?? detail;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(options.pollIntervalMs ?? 500, Math.max(0, deadline - Date.now()))));
+  }
+  throw new Error(`Server did not become ready within ${timeoutMs}ms. ${detail}`);
+}
+
 export async function probeLocalServerHealth(
   options: LocalServerHealthOptions,
 ): Promise<LocalServerHealthResult> {

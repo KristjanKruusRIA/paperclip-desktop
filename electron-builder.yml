@@ -21,6 +21,8 @@ publish:
 # node_modules comes from build/server-bundle (npm install --production output).
 # dist/ and package.json come from the published @paperclipai/server npm package.
 extraResources:
+  - from: scripts/server-entry.mjs
+    to: app-server/server-entry.mjs
   - from: build/server-bundle/${os}-${arch}/server/dist
     to: app-server/server/dist
     filter:
@@ -103,6 +105,7 @@ win:
         - x64
 
 nsis:
+  include: build/installer.nsh
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

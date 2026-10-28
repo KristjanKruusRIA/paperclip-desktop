@@ -8,6 +8,7 @@
 
 import { execFileSync } from "node:child_process";
 import { runCommandSync } from "./run-command.mjs";
+import { patchWindowsLoginCommands } from "./windows-login-commands.mjs";
 import {
   cpSync,
   existsSync,
@@ -250,7 +251,13 @@ for (const arch of targetArches) {
   const serverPkgDir = path.join(stagingDir, "node_modules", "@paperclipai", "server");
 
   cpSync(path.join(serverPkgDir, "dist"), path.join(bundleServerDir, "dist"), { recursive: true });
+  if (platform === "win32") patchWindowsLoginCommands(bundleServerDir);
   cpSync(path.join(serverPkgDir, "package.json"), path.join(bundleServerDir, "package.json"));
+
+  const publishedUi = path.join(serverPkgDir, "ui-dist");
+  if (existsSync(path.join(publishedUi, "index.html"))) {
+    cpSync(publishedUi, path.join(bundleServerDir, "ui-dist"), { recursive: true });
+  }
 
   const skillsSrc = path.join(serverPkgDir, "skills");
   if (existsSync(skillsSrc)) {

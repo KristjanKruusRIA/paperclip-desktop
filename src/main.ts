@@ -17,6 +17,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import treeKill from "tree-kill";
+import { windowsStartupMenuItem } from "./windows-startup";
 import { checkForUpdatesFromMenu, initAutoUpdater } from "./updater";
 import { getLauncherHtml } from "./launcher-html";
 import { handleSwipeNavigation } from "./navigation-gestures";
@@ -26,7 +27,7 @@ import {
   shouldRestorePreviousTrackedServer,
   shouldStopAttemptedServer,
 } from "./connection/local-server-lifecycle";
-import { probeLocalServerHealth } from "./connection/local-server-health";
+import { probeLocalServerHealth, waitForLocalServerHealth } from "./connection/local-server-health";
 import { preflightRemoteConnection } from "./connection/preflight";
 import { ConnectionStore, getConnectionsFilePath } from "./connection/profiles";
 import { normalizeRemoteUrl } from "./connection/validate";
@@ -53,7 +54,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 const PREFERRED_PORT = 3100;
-const SERVER_STARTUP_TIMEOUT_MS = 60_000;
+const SERVER_STARTUP_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 60_000;
 const POLL_INTERVAL_MS = 400;
 const PID_FILE_NAME = "paperclip-electron.pid";
 const LOCAL_SERVER_HEALTH_POLL_INTERVAL_MS = 30_000;
@@ -101,6 +102,7 @@ type LauncherPresentation = "standalone" | "attached";
 type BootStep = "init" | "database" | "server" | "ready";
 
 app.setName("Paperclip");
+if (process.platform === "win32") app.setAppUserModelId("com.paperclipai.app");
 applyDesktopUserDataOverride(app, process.env);
 
 // Capture native crashes locally (no upload) so segfaults that bypass the
@@ -215,30 +217,6 @@ async function findFreePort(startPort: number): Promise<number> {
   }
 
   throw new Error(`No free port found in range ${startPort}-${startPort + 99}`);
-}
-
-function waitForPort(port: number, timeoutMs: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const deadline = Date.now() + timeoutMs;
-
-    const tryConnect = () => {
-      if (Date.now() > deadline) {
-        reject(new Error(`Server did not start within ${timeoutMs}ms`));
-        return;
-      }
-
-      const sock = net.createConnection({ port, host: "127.0.0.1" }, () => {
-        sock.destroy();
-        resolve();
-      });
-
-      sock.on("error", () => {
-        setTimeout(tryConnect, POLL_INTERVAL_MS);
-      });
-    };
-
-    tryConnect();
-  });
 }
 
 function findNodeBinary(): string {
@@ -469,7 +447,10 @@ function startServer(port: number): ChildProcess {
   console.log(`Using PAPERCLIP_HOME: ${paperclipHome}`);
 
   const child = app.isPackaged
-    ? spawn(findNodeBinary(), [path.join(root, "server", "dist", "index.js")], {
+    ? spawn(findNodeBinary(), [
+        ...(isWindows ? [path.join(root, "server-entry.mjs")] : []),
+        path.join(root, "server", "dist", "index.js"),
+      ], {
         cwd: root,
         env: {
           ...process.env,
@@ -483,7 +464,7 @@ function startServer(port: number): ChildProcess {
         stdio: ["ignore", "pipe", "pipe"],
         detached: !isWindows,
       })
-    : spawn("node", [path.join(root, "node_modules", "@paperclipai", "server", "dist", "index.js")], {
+    : spawn("node", [path.join(root, "scripts", "server-entry.mjs"), path.join(root, "node_modules", "@paperclipai", "server", "dist", "index.js")], {
         cwd: root,
         env: {
           ...process.env,
@@ -1143,8 +1124,15 @@ async function bootLocal(options: {
     }, 2_000);
 
     updateProgress("server", "Waiting for server...", 45);
-    await waitForPort(serverPort, SERVER_STARTUP_TIMEOUT_MS);
-    clearInterval(progressInterval);
+    try {
+      await waitForLocalServerHealth({
+        origin: `http://127.0.0.1:${serverPort}`,
+        timeoutMs: SERVER_STARTUP_TIMEOUT_MS,
+        pollIntervalMs: POLL_INTERVAL_MS,
+      });
+    } finally {
+      clearInterval(progressInterval);
+    }
 
     if (bootId !== bootSequence) {
       if (shouldStopAttemptedServer(nextServerProcess, serverProcess)) {
@@ -1535,6 +1523,7 @@ function rebuildAppMenu(): void {
       label: "Paperclip",
       submenu: [
         { role: "about" },
+        ...(process.platform === "win32" ? [windowsStartupMenuItem(app)] : []),
         {
           label: "Check for Updates",
           click: () => {
