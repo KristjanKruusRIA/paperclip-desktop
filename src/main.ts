@@ -451,7 +451,7 @@ function startServer(port: number): ChildProcess {
   const child = app.isPackaged
     ? spawn(findNodeBinary(), [
         ...(isWindows ? [path.join(root, "server-entry.mjs")] : []),
-        path.join(root, PACKAGED_SERVER_DIR, "dist", "index.js"),
+        path.join(root, PACKAGED_SERVER_DIR, "node_modules", "@paperclipai", "server", "dist", "index.js"),
       ], {
         cwd: root,
         env: {

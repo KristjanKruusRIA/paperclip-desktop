@@ -96,6 +96,11 @@ dmg:
 # ─── Windows ─────────────────────────────────────────────────────────────────
 
 win:
+  publish:
+    provider: github
+    owner: KristjanKruusRIA
+    repo: paperclip-desktop
+    releaseType: release
   extraResources:
     - from: build/server-bundle/win-${arch}/server.asar
       to: app-server/server.asar

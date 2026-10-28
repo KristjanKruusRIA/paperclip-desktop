@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, lstatSync, openSync, closeSync, readSync, readdirSync, readlinkSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, openSync, closeSync, readSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Remove broken symlinks recursively. codesign fails on dangling links. */
@@ -207,6 +207,12 @@ export default async function afterPack(context) {
       join(context.appOutDir, "resources", "app-server", "server.asar.unpacked"),
       { recursive: true },
     );
+    // Directory builds have no installer target, so electron-builder skips this file.
+    const publish = context.packager.platformSpecificBuildOptions.publish;
+    writeFileSync(join(context.appOutDir, "resources", "app-update.yml"), JSON.stringify({
+      ...publish,
+      updaterCacheDirName: context.packager.appInfo.updaterCacheDirName,
+    }, null, 2));
     return;
   }
   if (context.electronPlatformName !== "darwin") return;

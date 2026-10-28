@@ -12,6 +12,7 @@ import {
 import { existsSync } from "node:fs";
 import path from "node:path";
 import log from "electron-log";
+import { isMissingReleaseFeedError } from "./update-feed";
 
 const updaterLogger = {
   info: (...args: unknown[]) => log.info(...args),
@@ -93,8 +94,8 @@ export async function checkForUpdatesFromMenu(preferredWindow?: BrowserWindow | 
     await showDialog({
       type: "info",
       title: "Check for Updates",
-      message: "Update checks are unavailable in this local app build.",
-      detail: "This unpacked build does not include app-update.yml. Test updates from a release-style packaged build instead.",
+      message: "This installation is missing its update settings.",
+      detail: "Install the latest Windows installer to restore update checks.",
     });
     return;
   }
@@ -156,8 +157,9 @@ export async function checkForUpdatesFromMenu(preferredWindow?: BrowserWindow | 
     if (isMissingReleaseFeedError(err)) {
       await showDialog({
         type: "info",
-        title: "You're Up to Date",
-        message: `Paperclip v${app.getVersion()} is already the latest version.`,
+        title: "Update Source Not Ready",
+        message: "The release source has not published Windows update information yet.",
+        detail: "Try again after a Windows release is published on the configured repository.",
       });
       return;
     }
@@ -210,7 +212,7 @@ function ensureUpdaterInitialized(): void {
 
   autoUpdater.on("error", (err) => {
     if (isMissingReleaseFeedError(err)) {
-      sendStatus("up-to-date");
+      sendStatus("error");
       return;
     }
 
@@ -290,7 +292,7 @@ async function checkForUpdatesSilently(options: { downloadIfAvailable: boolean }
     }
   } catch (err) {
     if (isMissingReleaseFeedError(err)) {
-      sendStatus("up-to-date");
+      sendStatus("error");
       return;
     }
 
@@ -324,23 +326,4 @@ async function promptToRestart(version: string): Promise<void> {
   } finally {
     restartPromptVisible = false;
   }
-}
-
-function isMissingReleaseFeedError(err: unknown): boolean {
-  if (typeof err === "string") {
-    return err.includes("releases.atom") && err.includes("404");
-  }
-
-  if (!err || typeof err !== "object") {
-    return false;
-  }
-
-  const maybeHttpError = err as { statusCode?: number; message?: string; stack?: string };
-  return (
-    maybeHttpError.statusCode === 404 &&
-    (
-      (typeof maybeHttpError.message === "string" && maybeHttpError.message.includes("releases.atom")) ||
-      (typeof maybeHttpError.stack === "string" && maybeHttpError.stack.includes("releases.atom"))
-    )
-  );
 }

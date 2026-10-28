@@ -16,7 +16,14 @@ test("copies every unpacked archive companion without package-file filtering", a
       mkdirSync(path.dirname(file), { recursive: true });
       writeFileSync(file, relative);
     }
-    await afterPack({ electronPlatformName: "win32", appOutDir: output, packager: { projectDir: root } });
+    const publish = { provider: "github", owner: "KristjanKruusRIA", repo: "paperclip-desktop" };
+    await afterPack({ electronPlatformName: "win32", appOutDir: output, packager: {
+      projectDir: root, platformSpecificBuildOptions: { publish },
+      appInfo: { updaterCacheDirName: "paperclip-desktop-updater" },
+    } });
+    assert.deepEqual(JSON.parse(readFileSync(path.join(output, "resources/app-update.yml"), "utf8")), {
+      ...publish, updaterCacheDirName: "paperclip-desktop-updater",
+    });
     for (const relative of files) {
       assert.equal(readFileSync(path.join(output, "resources/app-server/server.asar.unpacked", relative), "utf8"), relative);
     }

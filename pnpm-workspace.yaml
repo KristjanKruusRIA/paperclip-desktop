@@ -9,6 +9,7 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   esbuild: true
+  opencode-ai: false
   protobufjs: false
   sharp: true
   sqlite3: true
