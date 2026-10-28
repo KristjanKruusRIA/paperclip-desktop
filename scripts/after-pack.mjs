@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, openSync, closeSync, readSync, readdirSync, readlinkSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, openSync, closeSync, readSync, readdirSync, readlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 /** Remove broken symlinks recursively. codesign fails on dangling links. */
@@ -199,6 +199,16 @@ function signTarget(target, identity, entitlements) {
 }
 
 export default async function afterPack(context) {
+  if (context.electronPlatformName === "win32") {
+    // The ASAR header references every unpacked file. electron-builder's default
+    // dependency filters can omit scripts and vendor files from extraResources.
+    cpSync(
+      join(context.packager.projectDir, "build", "server-bundle", "win-x64", "server.asar.unpacked"),
+      join(context.appOutDir, "resources", "app-server", "server.asar.unpacked"),
+      { recursive: true },
+    );
+    return;
+  }
   if (context.electronPlatformName !== "darwin") return;
 
   const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);

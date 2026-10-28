@@ -87,7 +87,7 @@ See [github.com/paperclipai/paperclip](https://github.com/paperclipai/paperclip)
 
 ## Development
 
-Requirements: Node.js 20+, pnpm 9.15+.
+Requirements: Node.js 24.21+, pnpm 9.15+.
 
 For Windows development, run `node scripts/dev.mjs` after installing dependencies.
 Local provider sign-in commands use Windows PowerShell. Development and Windows
@@ -98,6 +98,11 @@ Build the Windows installer with `pnpm dist:win`. The installer is written to
 **Paperclip → Start at Windows sign-in** to launch automatically when you log in.
 In the launcher's Local tab, select **Always start local on launch** if you also
 want the local server to start without choosing a connection each time.
+
+Windows packages the server and UI in `server.asar`, with native programs and
+libraries in `server.asar.unpacked`. The server reads the archive directly using
+Electron's embedded Node runtime; it does not expand the JavaScript dependency
+tree during installation or first launch.
 
 ```bash
 pnpm install           # Install deps

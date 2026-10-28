@@ -302,7 +302,8 @@ for (const arch of targetArches) {
 }
 
 const NODE_VERSION = "v24.21.0";
-const arches = platform === "darwin" ? ["x64", "arm64"] : ["x64"];
+// Windows runs the archived server using Electron's embedded Node runtime.
+const arches = platform === "win32" ? [] : platform === "darwin" ? ["x64", "arm64"] : ["x64"];
 const nodeDownloadPlatform = platform === "win32" ? "win" : platform;
 const nodeBinDir = path.join(projectRoot, "build", "node-bin");
 
