@@ -9,6 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { runCommandSync } from "./run-command.mjs";
 import { patchWindowsLoginCommands } from "./windows-login-commands.mjs";
+import { patchWindowsBrowserLogin } from "./windows-browser-login.mjs";
 import {
   cpSync,
   existsSync,
@@ -235,6 +236,7 @@ for (const arch of targetArches) {
   // overwrites versions needed by other packages (for example the MCP SDK).
   if (platform === "win32") {
     patchWindowsLoginCommands(path.join(bundleServerDir, "node_modules", "@paperclipai", "server"));
+    patchWindowsBrowserLogin(path.join(bundleServerDir, "node_modules", "@paperclipai", "server"));
   }
   rmSync(path.join(bundleServerDir, "node_modules", ".bin"), { recursive: true, force: true });
 

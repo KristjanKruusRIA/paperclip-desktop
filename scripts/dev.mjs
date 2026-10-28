@@ -13,6 +13,7 @@
 import { execSync, spawn } from "node:child_process";
 import electron from "electron";
 import { patchWindowsLoginCommands } from "./windows-login-commands.mjs";
+import { patchWindowsBrowserLogin } from "./windows-browser-login.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,6 +22,7 @@ const projectRoot = path.resolve(__dirname, "..");
 
 if (process.platform === "win32") {
   patchWindowsLoginCommands(path.join(projectRoot, "node_modules", "@paperclipai", "server"));
+  patchWindowsBrowserLogin(path.join(projectRoot, "node_modules", "@paperclipai", "server"));
 }
 
 // 1. Compile TS
