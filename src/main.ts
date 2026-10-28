@@ -19,7 +19,7 @@ import net from "node:net";
 import path from "node:path";
 import treeKill from "tree-kill";
 import { windowsStartupMenuItem } from "./windows-startup";
-import { hideWindowOnClose, windowsTrayMenu } from "./windows-tray";
+import { hideWindowOnClose, isWindowHiddenToTray, windowsTrayMenu } from "./windows-tray";
 import { checkForUpdatesFromMenu, initAutoUpdater } from "./updater";
 import { getLauncherHtml } from "./launcher-html";
 import { handleSwipeNavigation } from "./navigation-gestures";
@@ -634,9 +634,6 @@ function desiredLauncherPresentation(): LauncherPresentation {
 function keepWindowInTray(window: BrowserWindow): void {
   if (process.platform !== "win32") return;
   hideWindowOnClose(window, () => !isQuitting && !!windowsTray && !windowsTray.isDestroyed());
-  window.on("query-session-end", () => {
-    isQuitting = true;
-  });
 }
 
 function closeLauncherWindow(): void {
@@ -1513,6 +1510,7 @@ function registerLauncherIpc(): void {
     if (!launcherWindow.isVisible()) {
       const [w] = launcherWindow.getContentSize();
       launcherWindow.setContentSize(w, newContentHeight);
+      if (isWindowHiddenToTray(launcherWindow)) return;
       launcherWindow.show();
       launcherWindow.focus();
       requestLauncherContentHeightSync();

@@ -22,3 +22,11 @@ Desktop 3.2.19 fixes the generic Windows tray image by loading resources/tray.ic
 directly instead of asking Windows to extract an icon from the executable. The
 packaged ICO is byte-identical to build/icon.ico and loads as a nonempty native
 image; the rendered 32-pixel preview shows the actual Paperclip mark.
+
+Review follow-up: shutdown queries do not alter the explicit quit flag. The tray
+close handler allows normal closing after the final session-end notification.
+Windows hidden to the tray are tracked until an explicit show; launcher content
+updates may resize them but cannot reveal or focus them. Both reported failures
+were reproduced against the packaged app before the fix, then passed after it.
+The regression suite now has 76 passing tests, including cancelled-query/final-end
+handling and hidden-window state reset on show.
