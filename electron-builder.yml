@@ -17,50 +17,51 @@ publish:
   repo: paperclip-desktop
   releaseType: release
 
-# Bundle the built server + UI alongside the app.
-# node_modules comes from build/server-bundle (npm install --production output).
-# dist/ and package.json come from the published @paperclipai/server npm package.
+# The server launcher is shared; platform-specific server resources are below.
 extraResources:
   - from: scripts/server-entry.mjs
     to: app-server/server-entry.mjs
-  - from: build/server-bundle/${os}-${arch}/server/dist
-    to: app-server/server/dist
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/ui-dist
-    to: app-server/server/ui-dist
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/node_modules
-    to: app-server/server/node_modules
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws-sdk
-    to: app-server/server/node_modules/@aws-sdk
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws-crypto
-    to: app-server/server/node_modules/@aws-crypto
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws
-    to: app-server/server/node_modules/@aws
-    filter:
-      - "**/*"
-  - from: build/server-bundle/${os}-${arch}/server/package.json
-    to: app-server/server/package.json
-  # Bundled Node.js binary (arch-specific, selected at build time)
-  - from: "build/node-bin/${os}-${arch}"
-    to: app-server/node-bin
-    filter:
-      - "**/*"
+  - from: scripts/asar-native-paths.mjs
+    to: app-server/asar-native-paths.mjs
 
 # ─── macOS ───────────────────────────────────────────────────────────────────
 
+beforePack: scripts/archive-windows-server.mjs
 afterPack: scripts/after-pack.mjs
 afterSign: scripts/after-sign.mjs
 
 mac:
+  extraResources: &unpackedServerResources
+    - from: build/server-bundle/${os}-${arch}/server/dist
+      to: app-server/server/dist
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/ui-dist
+      to: app-server/server/ui-dist
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/node_modules
+      to: app-server/server/node_modules
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws-sdk
+      to: app-server/server/node_modules/@aws-sdk
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws-crypto
+      to: app-server/server/node_modules/@aws-crypto
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/node_modules/@aws
+      to: app-server/server/node_modules/@aws
+      filter:
+        - "**/*"
+    - from: build/server-bundle/${os}-${arch}/server/package.json
+      to: app-server/server/package.json
+    - from: "build/node-bin/${os}-${arch}"
+      to: app-server/node-bin
+      filter:
+        - "**/*"
   category: public.app-category.developer-tools
   icon: build/icon.png
   target:
@@ -95,6 +96,14 @@ dmg:
 # ─── Windows ─────────────────────────────────────────────────────────────────
 
 win:
+  publish:
+    provider: github
+    owner: KristjanKruusRIA
+    repo: paperclip-desktop
+    releaseType: release
+  extraResources:
+    - from: build/server-bundle/win-${arch}/server.asar
+      to: app-server/server.asar
   icon: build/icon.ico
   target:
     - target: nsis
@@ -116,6 +125,7 @@ nsis:
 # ─── Linux ───────────────────────────────────────────────────────────────────
 
 linux:
+  extraResources: *unpackedServerResources
   icon: build/icon.png
   category: Development
   maintainer: Aron Prins

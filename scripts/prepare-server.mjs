@@ -162,41 +162,6 @@ function validateMigrations(bundleServerDir) {
   }
 }
 
-function dependencyDir(nodeModulesDir, dependency) {
-  return path.join(nodeModulesDir, ...dependency.split("/"));
-}
-
-function promoteServerRuntimeDependencies(serverPkgDir, bundleServerDir) {
-  const serverPackageJson = JSON.parse(
-    readFileSync(path.join(serverPkgDir, "package.json"), "utf8"),
-  );
-  const dependencies = Object.keys(serverPackageJson.dependencies ?? {}).sort();
-  const serverNodeModules = path.join(serverPkgDir, "node_modules");
-  const bundleNodeModules = path.join(bundleServerDir, "node_modules");
-
-  // The packaged server is relocated from node_modules/@paperclipai/server to
-  // the bundle root. Recreate the module lookup environment it had before the
-  // move: hoisted packages are already present, and nested packages must
-  // overlay them because npm nested those versions intentionally.
-  if (existsSync(serverNodeModules)) {
-    cpSync(serverNodeModules, bundleNodeModules, { recursive: true, force: true });
-  }
-
-  const missing = dependencies.filter((dependency) => {
-    const target = dependencyDir(bundleNodeModules, dependency);
-    return !existsSync(path.join(target, "package.json"));
-  });
-  if (missing.length > 0) {
-    throw new Error(
-      `Installed @paperclipai/server is missing runtime dependencies: ${missing.join(", ")}`,
-    );
-  }
-
-  console.log(
-    `[prepare-server] Promoted the nested server dependency environment for root resolution (${dependencies.length} direct dependencies).`,
-  );
-}
-
 for (const arch of targetArches) {
   const variant = `${ebPlatform}-${arch}`;
   const stagingDir = path.join(stagingRootDir, variant);
@@ -246,12 +211,13 @@ for (const arch of targetArches) {
   );
 
   console.log(`[prepare-server] Assembling server bundle for ${variant}...`);
+  // An upgrade must not retain removed dependencies, migrations, or UI assets.
+  rmSync(bundleServerDir, { recursive: true, force: true });
   mkdirSync(bundleServerDir, { recursive: true });
 
   const serverPkgDir = path.join(stagingDir, "node_modules", "@paperclipai", "server");
 
   cpSync(path.join(serverPkgDir, "dist"), path.join(bundleServerDir, "dist"), { recursive: true });
-  if (platform === "win32") patchWindowsLoginCommands(bundleServerDir);
   cpSync(path.join(serverPkgDir, "package.json"), path.join(bundleServerDir, "package.json"));
 
   const publishedUi = path.join(serverPkgDir, "ui-dist");
@@ -265,7 +231,11 @@ for (const arch of targetArches) {
   }
 
   cpSync(path.join(stagingDir, "node_modules"), path.join(bundleServerDir, "node_modules"), { recursive: true });
-  promoteServerRuntimeDependencies(serverPkgDir, bundleServerDir);
+  // Launch the installed package in place: flattening its nested dependencies
+  // overwrites versions needed by other packages (for example the MCP SDK).
+  if (platform === "win32") {
+    patchWindowsLoginCommands(path.join(bundleServerDir, "node_modules", "@paperclipai", "server"));
+  }
   rmSync(path.join(bundleServerDir, "node_modules", ".bin"), { recursive: true, force: true });
 
   if (platform === "darwin") {
@@ -302,7 +272,8 @@ for (const arch of targetArches) {
 }
 
 const NODE_VERSION = "v24.21.0";
-const arches = platform === "darwin" ? ["x64", "arm64"] : ["x64"];
+// Windows runs the archived server using Electron's embedded Node runtime.
+const arches = platform === "win32" ? [] : platform === "darwin" ? ["x64", "arm64"] : ["x64"];
 const nodeDownloadPlatform = platform === "win32" ? "win" : platform;
 const nodeBinDir = path.join(projectRoot, "build", "node-bin");
 

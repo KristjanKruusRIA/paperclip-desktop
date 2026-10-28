@@ -55,6 +55,7 @@ import type {
 
 const PREFERRED_PORT = 3100;
 const SERVER_STARTUP_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 60_000;
+const PACKAGED_SERVER_DIR = process.platform === "win32" ? "server.asar" : "server";
 const POLL_INTERVAL_MS = 400;
 const PID_FILE_NAME = "paperclip-electron.pid";
 const LOCAL_SERVER_HEALTH_POLL_INTERVAL_MS = 30_000;
@@ -166,7 +167,7 @@ function getAppRoot(): string {
 
 function resolveLocalServerVersion(): string | null {
   const candidates = app.isPackaged
-    ? [path.join(getAppRoot(), "server", "package.json")]
+    ? [path.join(getAppRoot(), PACKAGED_SERVER_DIR, "package.json")]
     : [path.join(getAppRoot(), "node_modules", "@paperclipai", "server", "package.json")];
 
   for (const candidate of candidates) {
@@ -225,6 +226,7 @@ function findNodeBinary(): string {
   }
 
   const isWindows = process.platform === "win32";
+  if (isWindows) return process.execPath;
   const bundledNode = path.join(
     process.resourcesPath,
     "app-server",
@@ -434,7 +436,7 @@ function resolvePaperclipHome(): string {
 
 function resolveTeamsCatalogDir(root: string): string {
   return app.isPackaged
-    ? path.join(root, "server", "node_modules", "@paperclipai", "teams-catalog")
+    ? path.join(root, PACKAGED_SERVER_DIR, "node_modules", "@paperclipai", "teams-catalog")
     : path.join(root, "node_modules", "@paperclipai", "teams-catalog");
 }
 
@@ -449,11 +451,12 @@ function startServer(port: number): ChildProcess {
   const child = app.isPackaged
     ? spawn(findNodeBinary(), [
         ...(isWindows ? [path.join(root, "server-entry.mjs")] : []),
-        path.join(root, "server", "dist", "index.js"),
+        path.join(root, PACKAGED_SERVER_DIR, "node_modules", "@paperclipai", "server", "dist", "index.js"),
       ], {
         cwd: root,
         env: {
           ...process.env,
+          ...(isWindows ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
           PATH: enrichedPath,
           NODE_ENV: "production",
           PORT: String(port),

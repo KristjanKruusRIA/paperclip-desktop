@@ -9,6 +9,7 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   esbuild: true
+  opencode-ai: false
   protobufjs: false
   sharp: true
   sqlite3: true
@@ -18,7 +19,7 @@ overrides:
   '@hono/node-server': 1.19.17
   '@tootallnate/once': 2.0.1
   '@xmldom/xmldom': 0.8.13
-  better-auth: 1.6.25
+  better-auth: 1.7.2
   body-parser: 2.3.0
   brace-expansion@1.1.12: 1.1.18
   brace-expansion@1.1.13: 1.1.18
@@ -28,7 +29,7 @@ overrides:
   brace-expansion@5.0.6: 5.0.9
   defu: 6.1.7
   dompurify: 3.4.14
-  esbuild: 0.28.1
+  esbuild: 0.28.2
   fast-uri: 3.1.6
   fast-xml-parser: 5.7.3
   form-data: 4.0.6
@@ -46,7 +47,7 @@ overrides:
   undici@6.25.0: 6.28.0
   undici@7.24.6: 7.29.0
   undici@7.28.0: 7.29.0
-  ws: 8.21.1
+  ws: 8.21.3
 minimumReleaseAgeExclude:
   - '@paperclipai/adapter-acpx-local@2026.626.0'
   - '@paperclipai/adapter-claude-local@2026.626.0'
@@ -100,3 +101,4 @@ minimumReleaseAgeExclude:
   - '@paperclipai/skills-catalog@2026.824.0'
   - '@paperclipai/teams-catalog@2026.824.0'
   - '@paperclipai/ui@2026.824.0'
+  - electron@45.1.0

@@ -15,10 +15,13 @@ export function patchWindowsLoginCommands(serverDir) {
   const file = path.join(serverDir, "dist", "services", "local-ai-login.js");
   const source = readFileSync(file, "utf8");
   if (source.includes("$paperclipPreviousHome")) return;
-  const original = /command: provider === "openai"[\s\S]*?: `\(export GROK_HOME=[^\n]+,/;
+  const browserLogin = source.includes('...(provider === "xai"');
+  const original = browserLogin
+    ? /command: `\(export GROK_HOME=[^`]+`/
+    : /command: provider === "openai"[\s\S]*?: `\(export GROK_HOME=[^\n]+,/;
   if (!original.test(source)) throw new Error("Unsupported Paperclip local login command format.");
   // Replace the file so pnpm's hard-linked package store stays unchanged.
   const patchedFile = `${file}.desktop-tmp`;
-  writeFileSync(patchedFile, source.replace(original, () => `command: (${windowsLoginCommand.toString()})(provider, directory),`));
+  writeFileSync(patchedFile, source.replace(original, () => `command: (${windowsLoginCommand.toString()})(provider, directory)${browserLogin ? "" : ","}`));
   renameSync(patchedFile, file);
 }

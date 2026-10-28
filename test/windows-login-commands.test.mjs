@@ -26,6 +26,23 @@ test("patches the server's terminal commands and can run again safely", () => {
   }
 });
 
+test("preserves upstream browser login and patches the remaining xai terminal command", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "paperclip browser login "));
+  try {
+    const services = path.join(directory, "dist", "services");
+    mkdirSync(services, { recursive: true });
+    const file = path.join(services, "local-ai-login.js");
+    writeFileSync(file, 'return { ...(provider === "xai" ? { command: `(export GROK_HOME=example)` } : {}), };');
+    patchWindowsLoginCommands(directory);
+    const run = new Function("provider", "directory", readFileSync(file, "utf8"));
+    assert.deepEqual(run("openai", directory), {});
+    assert.match(run("xai", directory).command, /grok login --device-auth/);
+    assert.doesNotMatch(run("xai", directory).command, /export |&&/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 for (const [provider, variable, tool] of [["openai", "CODEX_HOME", "codex"], ["anthropic", "CLAUDE_CONFIG_DIR", "claude"], ["xai", "GROK_HOME", "grok"]]) {
   test(`PowerShell ${provider} login preserves its path and restores the existing home`, { skip: process.platform !== "win32" }, () => {
     const directory = mkdtempSync(path.join(tmpdir(), "paperclip login ' & % "));

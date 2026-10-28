@@ -1,6 +1,6 @@
 {
   "name": "paperclip-desktop",
-  "version": "3.2.15",
+  "version": "3.2.17",
   "private": true,
   "description": "Paperclip desktop application \u2014 Electron wrapper for the Paperclip server",
   "author": {
@@ -36,9 +36,10 @@
     "tree-kill": "^1.2.2"
   },
   "devDependencies": {
-    "@paperclipai/server": "2026.1001.0",
-    "@paperclipai/teams-catalog": "2026.824.0",
-    "electron": "^41.10.7",
+    "@electron/asar": "^4.0.1",
+    "@paperclipai/server": "2026.1023.0",
+    "@paperclipai/teams-catalog": "2026.1023.0",
+    "electron": "^45.1.0",
     "electron-builder": "^26.15.7",
     "typescript": "^5.7.3"
   },
